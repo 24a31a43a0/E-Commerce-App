@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cart — Luxe Shop</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">Luxe<span>Shop</span></a>
+  <div class="nav-links">
+    <a href="products.html">Products</a>
+    <a href="cart.html" class="cart-icon active">
+      🛒 <span>Cart</span>
+      <span class="cart-badge" id="navBadge">0</span>
+    </a>
+  </div>
+</nav>
+
+<!-- CART -->
+<div class="cart-page page">
+  <h1>My <em>Cart</em></h1>
+  <p class="cart-subtitle" id="cartSubtitle">Loading your items...</p>
+
+  <div class="cart-layout" id="cartLayout">
+    <!-- Injected by JS -->
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+function getCart() { return JSON.parse(localStorage.getItem("cart")) || []; }
+function saveCart(c) { localStorage.setItem("cart", JSON.stringify(c)); }
+
+const PRODUCT_INFO = {
+  "Laptop Pro":     { emoji: "💻", category: "Electronics",  price: 50000 },
+  "Mobile X":       { emoji: "📱", category: "Electronics",  price: 20000 },
+  "Wireless Buds":  { emoji: "🎧", category: "Accessories",  price: 5999  },
+  "Smart Watch":    { emoji: "⌚", category: "Accessories",  price: 12000 },
+  // legacy items from old script
+  "Laptop":         { emoji: "💻", category: "Electronics",  price: 50000 },
+  "Mobile":         { emoji: "📱", category: "Electronics",  price: 20000 },
+};
+
+function formatPrice(p) { return "₹" + p.toLocaleString("en-IN"); }
+
+function render() {
+  const cart = getCart();
+  const layout = document.getElementById("cartLayout");
+  const subtitle = document.getElementById("cartSubtitle");
+  const badge = document.getElementById("navBadge");
+
+  const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+  badge.textContent = totalQty;
+
+  if (cart.length === 0) {
+    subtitle.textContent = "Your cart is empty";
+    layout.innerHTML = `
+      <div class="empty-cart">
+        <div class="empty-icon">🛒</div>
+        <h3>Nothing here yet</h3>
+        <p>Add some amazing products to get started</p>
+        <a href="products.html" class="btn btn-primary" style="max-width:200px;margin:0 auto;">
+          Browse Products
+        </a>
+      </div>`;
+    return;
+  }
+
+  subtitle.textContent = `${totalQty} item${totalQty !== 1 ? "s" : ""} in your cart`;
+
+  const subtotal = cart.reduce((s, i) => {
+    const info = PRODUCT_INFO[i.name] || {};
+    return s + (info.price || i.price || 0) * i.qty;
+  }, 0);
+  const shipping = subtotal >= 999 ? 0 : 99;
+  const total = subtotal + shipping;
+
+  const itemsHTML = cart.map((item, idx) => {
+    const info = PRODUCT_INFO[item.name] || { emoji: "📦", category: "Product", price: item.price || 0 };
+    const itemTotal = info.price * item.qty;
+    return `
+    <div class="cart-item" id="item-${idx}">
+      <div class="cart-item-img">${info.emoji}</div>
+      <div class="cart-item-info">
+        <div class="cart-item-cat">${info.category}</div>
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">${formatPrice(info.price)} each</div>
+      </div>
+      <div class="qty-control">
+        <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
+        <span class="qty-num">${item.qty}</span>
+        <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
+      </div>
+      <div class="cart-item-subtotal">${formatPrice(itemTotal)}</div>
+      <button class="remove-btn" onclick="removeItem(${idx})" title="Remove">✕</button>
+    </div>`;
+  }).join("");
+
+  layout.innerHTML = `
+    <div class="cart-items-list">
+      ${itemsHTML}
+      <div style="margin-top:8px;">
+        <a href="products.html" class="btn btn-ghost" style="font-size:0.82rem;padding:10px 20px;">
+          ← Continue Shopping
+        </a>
+      </div>
+    </div>
+    <div class="cart-summary">
+      <h3>Order Summary</h3>
+      <div class="summary-row label">
+        <span>Subtotal (${totalQty} items)</span>
+        <span>${formatPrice(subtotal)}</span>
+      </div>
+      <div class="summary-row label">
+        <span>Shipping</span>
+        <span>${shipping === 0 ? '<span style="color:var(--success)">Free</span>' : formatPrice(shipping)}</span>
+      </div>
+      ${shipping > 0 ? `<div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;">Add ₹${(999-subtotal).toLocaleString('en-IN')} more for free shipping</div>` : ""}
+      <div class="promo-input">
+        <input type="text" placeholder="Promo code" id="promoInput">
+        <button onclick="applyPromo()">Apply</button>
+      </div>
+      <div class="summary-row total">
+        <span>Total</span>
+        <span>${formatPrice(total)}</span>
+      </div>
+      <button class="btn-checkout" onclick="checkout()">
+        Proceed to Checkout →
+      </button>
+      <div class="secure-note">🔒 Secure & encrypted checkout</div>
+    </div>`;
+}
+
+function changeQty(idx, delta) {
+  const cart = getCart();
+  cart[idx].qty = Math.max(1, cart[idx].qty + delta);
+  saveCart(cart);
+  render();
+}
+
+function removeItem(idx) {
+  const cart = getCart();
+  cart.splice(idx, 1);
+  saveCart(cart);
+  render();
+}
+
+function applyPromo() {
+  const val = document.getElementById("promoInput").value.trim().toUpperCase();
+  if (val === "LUXE10") {
+    alert("Promo applied! 10% off coming soon 🎉");
+  } else {
+    document.getElementById("promoInput").style.borderColor = "var(--danger)";
+    setTimeout(() => document.getElementById("promoInput").style.borderColor = "", 1500);
+  }
+}
+
+function checkout() {
+  alert("🎉 Order placed successfully! Thank you for shopping at LuxeShop.");
+  localStorage.removeItem("cart");
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

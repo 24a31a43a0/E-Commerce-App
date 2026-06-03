@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products — Luxe Shop</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">Luxe<span>Shop</span></a>
+  <div class="nav-links">
+    <a href="products.html" class="active">Products</a>
+    <a href="cart.html" class="cart-icon">
+      🛒 <span>Cart</span>
+      <span class="cart-badge" id="navBadge">0</span>
+    </a>
+  </div>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✦ Added to cart</div>
+
+<!-- PRODUCTS -->
+<div class="products-page page">
+  <div class="page-header">
+    <div class="page-header-text">
+      <h1>Our <em>Catalog</em></h1>
+      <p>Premium products, handpicked for you</p>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-chip active" onclick="filterProducts('all', this)">All</button>
+      <button class="filter-chip" onclick="filterProducts('electronics', this)">Electronics</button>
+      <button class="filter-chip" onclick="filterProducts('accessories', this)">Accessories</button>
+    </div>
+  </div>
+
+  <div class="products-grid" id="productsGrid">
+    <!-- Injected by JS -->
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+const PRODUCTS = [
+  {
+    id: 1,
+    name: "Laptop Pro",
+    category: "electronics",
+    label: "Electronics",
+    emoji: "💻",
+    price: 50000,
+    desc: "Ultra-slim powerhouse with 12-core processor, 32GB RAM & stunning OLED display.",
+    rating: 4.8,
+    reviews: 124,
+    badge: "Best Seller"
+  },
+  {
+    id: 2,
+    name: "Mobile X",
+    category: "electronics",
+    label: "Electronics",
+    emoji: "📱",
+    price: 20000,
+    desc: "Flagship smartphone with triple-camera system and all-day battery life.",
+    rating: 4.6,
+    reviews: 89,
+    badge: "New"
+  },
+  {
+    id: 3,
+    name: "Wireless Buds",
+    category: "accessories",
+    label: "Accessories",
+    emoji: "🎧",
+    price: 5999,
+    desc: "Premium noise-cancelling earbuds with 30-hour playback and crystal-clear sound.",
+    rating: 4.7,
+    reviews: 56,
+    badge: "Hot"
+  },
+  {
+    id: 4,
+    name: "Smart Watch",
+    category: "accessories",
+    label: "Accessories",
+    emoji: "⌚",
+    price: 12000,
+    desc: "Health tracking, notifications, and premium build — your perfect companion.",
+    rating: 4.5,
+    reviews: 42,
+    badge: null
+  }
+];
+
+function formatPrice(p) {
+  return "₹" + p.toLocaleString("en-IN");
+}
+
+function renderProducts(filter = "all") {
+  const grid = document.getElementById("productsGrid");
+  const filtered = filter === "all" ? PRODUCTS : PRODUCTS.filter(p => p.category === filter);
+  grid.innerHTML = filtered.map((p, i) => `
+    <div class="product-card" style="animation-delay:${i * 0.1}s">
+      ${p.badge ? `<div class="product-badge">${p.badge}</div>` : ""}
+      <div class="product-image-area">
+        <div class="product-emoji">${p.emoji}</div>
+      </div>
+      <div class="product-body">
+        <div class="product-category">${p.label}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-desc">${p.desc}</div>
+        <div class="product-meta">
+          <div class="product-price">${formatPrice(p.price)}<span>incl. tax</span></div>
+          <div class="product-rating">
+            <span class="stars">★★★★★</span>
+            ${p.rating} (${p.reviews})
+          </div>
+        </div>
+        <button class="btn-add" id="btn-${p.id}" onclick="handleAdd(${p.id}, '${p.name}', ${p.price}, '${p.emoji}', this)">
+          <span>Add to Cart</span> +
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function filterProducts(cat, el) {
+  document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+  el.classList.add("active");
+  renderProducts(cat);
+}
+
+function handleAdd(id, name, price, emoji, btn) {
+  addToCart(name, price, emoji);
+  btn.classList.add("added");
+  btn.innerHTML = "<span>Added ✓</span>";
+  setTimeout(() => {
+    btn.classList.remove("added");
+    btn.innerHTML = "<span>Add to Cart</span> +";
+  }, 1800);
+  showToast(`${emoji} ${name} added!`);
+  updateBadge();
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = "✦ " + msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function updateBadge() {
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  document.getElementById("navBadge").textContent = cart.reduce((s, i) => s + i.qty, 0);
+}
+
+renderProducts();
+updateBadge();
+</script>
+</body>
+</html>
